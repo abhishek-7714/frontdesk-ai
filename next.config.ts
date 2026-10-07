@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   devIndicators: false,
+  async redirects() {
+    return [{ source: "/landing", destination: "/", permanent: false }];
+  },
 };
 
 export default nextConfig;
