@@ -41,6 +41,7 @@ FrontDesk AI is a voice receptionist for outpatient clinics. A patient calls the
 | `/api/monitor/latest` | GET | Snapshot of the current or most recent call |
 | `/api/eleven/session` | GET | ElevenLabs signed URL for the browser (503 until the agent is configured) |
 | `/api/admin/reset` | POST | Remove demo calls and bookings, reopen slots. Header `x-admin-token` |
+| `/api/admin/seed` | POST | Re-seed everything relative to today. Header `x-admin-token` |
 | `/api/mcp/[MCP_SECRET]` | GET/POST/DELETE | MCP server for Claude. Tools: `get_schedule`, `get_patient_brief`, `list_recent_calls`, `search_policy` |
 
 ## How RAG works
@@ -118,11 +119,17 @@ After editing `agent/prompt.txt`, push it to the live agent with `npx tsx script
 
 ## Deploying (Railway)
 
+Live: **https://frontdesk-ai-production-eff4.up.railway.app** (Railway project `courteous-youthfulness`, services `pgvector` + `frontdesk-ai`, auto-deploys on push to `main`).
+
 1. Create a Postgres service from Railway's **pgvector** template.
-2. Deploy this repo from GitHub. Set the start command to `npm run migrate && npm start`.
-3. Set the env vars from `.env.example`. `DATABASE_URL` should reference the pgvector service.
-4. Seed once with `railway run npm run seed`, and again on demo morning.
-5. Verify the deploy with `npx tsx scripts/e2e-flow.ts --base https://<app>.up.railway.app`.
+2. Add a service from this GitHub repo. `railway.json` sets the start command (`npm run migrate && npm run seed -- --if-empty && npm start`), so a fresh database is migrated and seeded on first boot, while an existing one is left alone. It also sets the `/api/health` health check.
+3. Set the env vars from `.env.example`. Use `DATABASE_URL=${{pgvector.DATABASE_URL_PRIVATE}}` (Railway's private network).
+4. Generate a domain: `railway domain --service frontdesk-ai`.
+5. To re-seed later, e.g. on demo morning, no database access is needed:
+   ```bash
+   curl -X POST https://<app>/api/admin/seed -H "x-admin-token: <ADMIN_TOKEN>"
+   ```
+6. To verify, pass the production secrets: `MCP_SECRET=… ADMIN_TOKEN=… npx tsx scripts/e2e-flow.ts --base https://<app>`. Get them with `railway variables --service frontdesk-ai`.
 
 ## Quality checks (local, production build)
 
@@ -158,9 +165,9 @@ To project costs to 10,000 users: monthly cost = cost per call × calls per user
 
 ## Demo-day runbook
 
-1. **Morning:** run `npm run seed` (dates are relative to today), then `npm run reset`. Open `/monitor?admin=<token>` on the laptop in full screen. Run one test call, then reset again.
+1. **Morning:** re-seed production so the dates are relative to today: `curl -X POST https://<app>/api/admin/seed -H "x-admin-token: <ADMIN_TOKEN>"`. Open `https://<app>/monitor?admin=<ADMIN_TOKEN>` on the laptop in full screen. Run one test call, then press **Reset demo** on the monitor.
 2. **Ten minutes before:** open `/call` on the presenting phone, using mobile data rather than campus Wi-Fi, and grant mic permission once. Open claude.ai on the laptop in a second window with the connector enabled. Run one `get_schedule` query to warm it up.
 3. **Fallbacks, in order:**
    - Call from the laptop's `/call` page if the phone fails.
-   - Run `npm run simulate -- --base https://<app>` against production if voice fails entirely.
+   - Run `npm run simulate -- --base https://<app>` against production if voice fails entirely. Add `--scenario info` or `--scenario emergency` for the other endings.
    - Play the recorded backup video if the network fails.
