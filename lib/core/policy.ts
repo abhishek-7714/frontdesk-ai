@@ -18,6 +18,7 @@ const SYNONYMS: [RegExp, string[]][] = [
   [/\b(cancel\w*|reschedul\w*|change|late|no.?show)/i, ["reschedule", "cancel"]],
   [/\b(bring|carry|document|first visit|id\b|report|x-?ray|mri)/i, ["bring"]],
   [/\b(emergenc\w*|breath\w*|faint\w*|stroke|bleed\w*|urgent)/i, ["emergency"]],
+  [/\b(contact|phone|number|call you|email|e-mail|mail|whatsapp|reach you|front desk|reception)/i, ["contacting", "front", "desk", "phone", "email"]],
 ];
 
 const STOP = new Set(
