@@ -28,6 +28,7 @@
     "pg": "^8.23.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -38,7 +39,6 @@
     "@types/react-dom": "^19.3.0",
     "playwright": "^1.63.0",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

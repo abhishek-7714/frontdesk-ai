@@ -94,6 +94,14 @@ async function main() {
   const bookableAfter = now.getTime() + 60 * 60_000;
 
   try {
+    // `--if-empty` lets the deploy's start command seed a fresh database without wiping a live one.
+    if (process.argv.includes("--if-empty")) {
+      const { rows } = await client.query<{ n: number }>(`SELECT count(*)::int AS n FROM doctors`);
+      if (rows[0].n > 0) {
+        console.log(`[seed] skipped: database already has ${rows[0].n} doctors (run without --if-empty to re-seed)`);
+        return;
+      }
+    }
     await client.query("BEGIN");
     await client.query(
       `TRUNCATE call_events, transcript_lines, escalations, intakes, appointments, calls, slots, patients, doctors, policy_chunks RESTART IDENTITY CASCADE`,
