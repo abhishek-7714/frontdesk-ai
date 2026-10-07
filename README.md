@@ -83,13 +83,15 @@ Scripts load `.env` and then `.env.local`. Values in `.env.local` win.
 
 | Command | Does |
 |---|---|
-| `npm run simulate [-- --base URL --speed N --reset]` | Replays the rehearsed knee-pain call against the API, without voice |
+| `npm run simulate [-- --base URL --speed N --reset --scenario S]` | Replays a call against the API, without voice. `booking` (default) is the rehearsed knee-pain call; `info` asks policy questions only; `emergency` reports chest pain and escalates to staff |
 | `npm run reset` | Removes demo calls and bookings and reopens slots. Does not move dates, so use `seed` for that |
 | `bash scripts/curl-checkpoint.sh` | Runs every tool endpoint with curl (set `BASE`) |
 | `npx tsx scripts/check-schedule.ts this_week` | Prints the `get_schedule` markdown |
 | `npx tsx scripts/mcp-check.ts` | Lists and calls all MCP tools over HTTP |
 | `npx tsx scripts/e2e-flow.ts [--base URL]` | Full check: health → reset → simulated call driving a real browser on `/monitor` (incl. mid-call refresh) → MCP shows booking → reset |
-| `npm run build && npm start` | Production build |
+| `npx tsx scripts/race-check.ts [--base URL]` | Sends 10 simultaneous bookings for one slot; exactly one must succeed |
+| `npx tsx scripts/shoot-scenarios.ts`, `shoot-monitor.ts`, `shoot-landing.ts` | Playwright screenshots into `screenshots/` |
+| `npm run build && npm start` | Production build. Set `NEXT_DIST_DIR=.next-prod` to build next to a running `npm run dev` |
 
 ## ElevenLabs agent setup
 
@@ -119,6 +121,17 @@ To check the setup, `GET /api/eleven/session` should return `{ "signedUrl": ... 
 3. Set the env vars from `.env.example`. `DATABASE_URL` should reference the pgvector service.
 4. Seed once with `railway run npm run seed`, and again on demo morning.
 5. Verify the deploy with `npx tsx scripts/e2e-flow.ts --base https://<app>.up.railway.app`.
+
+## Quality checks (local, production build)
+
+| Check | Result |
+|---|---|
+| `npm run build` / `npm run typecheck` | Pass, zero errors |
+| `e2e-flow.ts` against `npm start` | All checks pass, including mid-call refresh with no duplicate cards |
+| Monitor event stream after a server restart | Reconnects and shows the next call without a page reload |
+| `race-check.ts` (10 simultaneous bookings for one slot) | 1 booked, 9 got a speakable refusal, all HTTP 200 |
+| Lighthouse accessibility | `/call` 100 · `/monitor` 100 · `/` 100 |
+| Secrets in client bundles | None. `MCP_SECRET`, `ADMIN_TOKEN` and `DATABASE_URL` values, and the API key names, are absent from `static/` |
 
 ## Cost per call
 

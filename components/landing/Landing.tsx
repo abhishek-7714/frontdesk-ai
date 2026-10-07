@@ -63,7 +63,7 @@ export function Landing({ stats }: { stats: TodayStats | null }) {
       <HowItWorks />
       <Split />
       <Stats stats={stats} />
-      <footer className="bg-periwinkle px-6 pb-10 pt-4 text-center text-[14px] text-white/75">
+      <footer className="bg-periwinkle-600 px-6 pb-10 pt-4 text-center text-[14px] text-white">
         FrontDesk AI · a class project. {CLINIC} is fictional and all data is synthetic.
       </footer>
     </main>
@@ -330,7 +330,7 @@ function Split() {
         <h2 className="display mt-5 max-w-[520px] text-balance text-[clamp(40px,4.4vw,64px)] text-headline-grey">
           <Reveal>{words("Built for clinics that never want to miss a call")}</Reveal>
         </h2>
-        <Link href="/call" className="mt-10 inline-flex h-14 items-center gap-2 rounded-full bg-periwinkle px-9 text-[17px] font-medium text-white transition hover:bg-periwinkle-600">
+        <Link href="/call" className="mt-10 inline-flex h-14 items-center gap-2 rounded-full bg-periwinkle-600 px-9 text-[17px] font-medium text-white transition hover:brightness-110">
           Try the live line
         </Link>
       </div>
@@ -368,9 +368,9 @@ function Stats({ stats }: { stats: TodayStats | null }) {
   const avg = stats?.avg_call_s ? `${Math.floor(stats.avg_call_s / 60)}:${String(stats.avg_call_s % 60).padStart(2, "0")}` : null;
 
   return (
-    <section id="stats" className="relative bg-periwinkle px-5 py-24 text-white lg:min-h-[920px] lg:py-0">
+    <section id="stats" className="relative bg-periwinkle-600 px-5 py-24 text-white lg:min-h-[920px] lg:py-0">
       <div className="relative z-10 flex flex-col items-center text-center lg:absolute lg:inset-0 lg:justify-center">
-        <p className="inline-flex items-center gap-2.5 text-[18px] text-white/85">
+        <p className="inline-flex items-center gap-2.5 text-[18px] text-white">
           {stats && <LiveDot />} {stats ? `Live from ${CLINIC}` : `${CLINIC} · offline preview`}
         </p>
         <h2 className="display mt-4 max-w-[760px] text-[clamp(44px,5.5vw,84px)]">
@@ -491,7 +491,11 @@ function Stats({ stats }: { stats: TodayStats | null }) {
                       <span className="rounded-full bg-white/20 px-2 py-0.5 text-[12px] tabular">₹{d.fee}</span>
                     </div>
                   </div>
-                  <span className={`flex h-7 w-12 items-center rounded-full p-1 ${d.open_today ? "bg-success/90" : "bg-white/20"}`} aria-label={d.open_today ? `${d.open_today} open slots today` : "Fully booked today"}>
+                  <span
+                    role="img"
+                    className={`flex h-7 w-12 items-center rounded-full p-1 ${d.open_today ? "bg-success/90" : "bg-white/20"}`}
+                    aria-label={d.open_today ? `${d.open_today} open slot${d.open_today === 1 ? "" : "s"} today` : "Fully booked today"}
+                  >
                     <span className={`h-5 w-5 rounded-full bg-white transition ${d.open_today ? "translate-x-5" : ""}`} />
                   </span>
                 </div>

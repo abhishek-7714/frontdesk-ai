@@ -54,3 +54,23 @@
 - Prepared `scripts/create-eleven-agent.ts` (request format checked against current docs: `POST /v1/convai/tools` ×5 with `type: client`, `expects_response: true`, then `POST /v1/convai/agents/create` with `tool_ids`, `llm: claude-haiku-4-5` (fastest Claude in their list; falls back to sonnet-4-5 → sonnet-4-6 → platform default), auth enabled, 300 s max, first message, system prompt from `agent/prompt.txt`, and an Indian-English female voice found via `/v1/shared-voices`). Dry run passes. It writes `ELEVENLABS_AGENT_ID` into `.env.local`.
 - `/api/eleven/session` returns 503 "Voice agent is not configured" until both the key and the agent ID are set; verify it returns `{ signedUrl }` after setup.
 - Dashboard fallback steps are in the README ("ElevenLabs agent setup").
+
+### Phase 6 — Deploy ⛔ blocked (no Railway CLI on this Mac; Railway DATABASE_URL unreachable from here)
+- Steps are in the README ("Deploying (Railway)"). After deploying, run `npx tsx scripts/e2e-flow.ts --base https://<app>.up.railway.app`.
+
+### Phase 7 — Polish and README ✅
+- README + `.env.example`. Titles and favicon were already in place.
+- Simulator scenarios `--scenario booking|info|emergency`. The monitor's non-booking endings now read correctly: "Call summary" and a "Front desk alerted" pill for escalations, not the doctor handoff. Template summaries for information calls name the policy topics consulted. Screenshots: `screenshots/monitor-*-{info,emergency}-*.png`.
+- Bug fixed: `/call` created the call row before checking the voice session, so a failed start flipped the projector to "Incoming call". The page now gets the session first.
+- Monitor reopens the event stream with backoff if the browser gives up (verified by killing and restarting the server mid-session).
+- Quality bar verified on a production build: build passes, e2e passes, race check passes, Lighthouse a11y 100 on `/call`, `/monitor` and `/`, no secrets in client bundles (README "Quality checks").
+
+### Phase 8 — Landing page ✅
+- `/` is now the landing page. It has five sections in the reference styles, and its stat widgets read live numbers from the DB, with an offline fallback if the DB is down. The demo still uses `/call` and `/monitor` directly.
+- Checked at 1440 and 390 wide with no horizontal overflow (`scripts/shoot-landing.ts`).
+
+### Still needs keys / you
+- `ELEVENLABS_API_KEY` → `npx tsx scripts/create-eleven-agent.ts` → a real voice call (the Phase 5 checkpoint).
+- Railway deploy (Phase 6), then connect the MCP URL in claude.ai.
+- Cost per call in the README after the first real call.
+- Optional: `OPENAI_API_KEY` (embeddings) and `ANTHROPIC_API_KEY` (LLM summaries). Re-run `npm run seed` after adding the OpenAI key so chunks get embedded.
