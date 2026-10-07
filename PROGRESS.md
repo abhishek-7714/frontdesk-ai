@@ -29,3 +29,12 @@
   - Tool inputs tolerate LLM quirks: null/"" optional fields, numeric strings for slot_id, unknown time_preference → "any".
   - `get_schedule` markdown opens with a "New from the AI receptionist" callout so the fresh booking is impossible to miss among ~30 seeded appointments.
   - Tools auto-create a call row if a tool arrives with an unknown call_id (never fails the agent).
+
+### Phase 3 — Simulator and monitor ✅ (+ Task 2 design pass)
+- `npm run simulate [-- --base URL --speed N --reset]` replays the rehearsed knee-pain call (picks the 4 PM slot).
+- `/monitor`: idle = frame-05 composition (floating widgets fed by live DB stats); on `call.started` the transcript (left) and event feed (right) slide in; ended = "Booked and briefed" + pre-visit brief card + "Shared with Dr. Meera Iyer · available in Claude" pill.
+- Design rounds (Playwright, `scripts/shoot-monitor.ts`, both 1920×1080 and 1440×900):
+  - R1: headline collided with widgets, ring card crowded the top bar, empty "—" avg-call, Next.js dev badge visible, dead space under the waveform, summary capitalisation, timer vs chip mismatch.
+  - R2: recomposed idle around a clear headline zone (112 px), vertically centred live column, dev indicator off, timer uses server duration, template summary fixed.
+  - R3: balanced bottom row, slightly stronger agent-bubble contrast. Final set in `screenshots/monitor-*.png`.
+- Decision: the monitor renders a fixed 1920×1080 design canvas scaled to the viewport (canvas extends on the long axis), so it can never overflow or scroll on any projector resolution.

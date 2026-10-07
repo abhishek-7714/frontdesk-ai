@@ -125,8 +125,37 @@ export async function getTodayStats() {
     `SELECT count(*)::int AS n FROM appointments a JOIN slots s ON s.id = a.slot_id WHERE a.status = 'booked' AND s.starts_at >= $1 AND s.starts_at < $2`,
     [istInstant(t0), istInstant(t0 + 1)],
   );
-  return { calls_today: row?.calls ?? 0, booked_by_ai: row?.booked ?? 0, avg_call_s: row?.avg_s ? Math.round(row.avg_s) : null, appointments_today: appts?.n ?? 0 };
+  const slots = await one<{ total: number; booked: number }>(
+    `SELECT count(*)::int AS total, count(*) FILTER (WHERE status = 'booked')::int AS booked FROM slots WHERE starts_at >= $1 AND starts_at < $2`,
+    [istInstant(t0), istInstant(t0 + 1)],
+  );
+  const doctors = await query<{ name: string; specialty: string; open_today: number; fee: number }>(
+    `SELECT d.name, d.specialty, d.consult_fee_inr AS fee,
+            (SELECT count(*)::int FROM slots s WHERE s.doctor_id = d.id AND s.status = 'open' AND s.starts_at > now() AND s.starts_at < $1) AS open_today
+     FROM doctors d ORDER BY d.id`,
+    [istInstant(t0 + 1)],
+  );
+  const next = await one<{ starts_at: Date; patient_name: string; reason: string; doctor_name: string; specialty: string }>(
+    `SELECT s.starts_at, p.name AS patient_name, a.reason, d.name AS doctor_name, d.specialty
+     FROM appointments a JOIN slots s ON s.id = a.slot_id JOIN patients p ON p.id = a.patient_id JOIN doctors d ON d.id = a.doctor_id
+     WHERE a.status = 'booked' AND s.starts_at > now() AND d.slug = $1 ORDER BY s.starts_at LIMIT 1`,
+    [env().DEMO_DOCTOR_SLUG],
+  );
+  return {
+    calls_today: row?.calls ?? 0,
+    booked_by_ai: row?.booked ?? 0,
+    avg_call_s: row?.avg_s ? Math.round(row.avg_s) : null,
+    appointments_today: appts?.n ?? 0,
+    slots_today: slots?.total ?? 0,
+    slots_booked_today: slots?.booked ?? 0,
+    doctors,
+    next_visit: next
+      ? { time_label: timeLabel(next.starts_at), long_day: longDay(next.starts_at), patient_name: next.patient_name, reason: next.reason, doctor_name: next.doctor_name, specialty: next.specialty }
+      : null,
+  };
 }
+
+export type TodayStats = Awaited<ReturnType<typeof getTodayStats>>;
 
 export async function listRecentCalls(limit = 5) {
   return query<{

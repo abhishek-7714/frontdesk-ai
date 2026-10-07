@@ -20,9 +20,9 @@ export function templateSummary(s: SummaryInput): string {
   const name = s.patient_name ?? "The caller";
   if (s.appointment) {
     const i = s.intake;
-    const parts = [`${name}, booked for ${s.appointment.day} ${s.appointment.time} with ${s.appointment.doctor_name}.`];
+    const parts = [`${name}, booked for ${s.appointment.day} at ${s.appointment.time} with ${s.appointment.doctor_name}.`];
     if (i?.chief_complaint) {
-      parts.push(`Reports ${lowerFirst(i.chief_complaint)}${i.duration ? ` for ${i.duration}` : ""}${i.severity ? `; ${i.severity}` : ""}.`);
+      parts.push(`Reports ${lowerFirst(i.chief_complaint)}${i.duration ? ` for ${i.duration}` : ""}${i.severity ? `; ${lowerFirst(i.severity)}` : ""}.`);
     } else {
       parts.push(`Reason: ${lowerFirst(s.appointment.reason)}.`);
     }
