@@ -162,7 +162,7 @@ These numbers come from the three real test calls on 8 Oct 2026, read from the E
 | 3 | 156 s | 797 | 53,483 | 953 |
 | **Average** | **144 s (2.4 min)** | **722** | **50,402** | **908** |
 
-- **One typical session (one booking call): 722 credits ≈ ₹2.41**, or about ₹1.00 per minute of talk.
+- **One typical session (one booking call): 722 credits ≈ ₹2.41**, or about ₹1.00 per minute of talk. This is the all-in voice cost: speech-to-text, the Claude Haiku 4.5 usage below (about $0.06 at list price) and text-to-speech are all billed inside these credits.
 - **LLM tokens per call:** about 50,000 input and 900 output (Claude Haiku 4.5 inside ElevenLabs). Input is large because the system prompt and the growing conversation are re-sent on each of the ~16 agent turns. ElevenLabs reported zero cached input tokens.
 - **Other AI cost: ₹0 today.** The pre-visit brief uses the template (no Anthropic key) and policy search uses full-text search (no OpenAI key). With both keys on, the brief costs about 1,000 Haiku tokens and the embeddings about 20 tokens per question, a few paise per call.
 - **Hosting:** one Railway app and one Postgres instance, a fixed monthly cost that doesn't grow with calls at this scale.
