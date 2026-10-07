@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+:root {
+  --periwinkle: #5c7de4;
+  --periwinkle-600: #4a69cf;
+  --periwinkle-100: #dce4fa;
+  --lavender: #e6ebf5;
+  --ink: #1c2333;
+  --ink-muted: #6b7180;
+  --headline-grey: #7a7f8c;
+  --white: #ffffff;
+  --card-on-blue: #f3f6fe;
+  --danger: #e5484d;
+  --success: #3fbf8f;
+
+  --glass-light-bg: rgba(255, 255, 255, 0.14);
+  --glass-light-border: rgba(255, 255, 255, 0.28);
+  --glass-dark-bg: rgba(38, 38, 44, 0.42);
+  --glass-dark-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 24px;
+
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 44px;
+  --radius-pill: 999px;
+
+  --shadow-float: 0 20px 60px -20px rgba(20, 30, 80, 0.35);
+  --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 24px 48px -24px rgba(20, 30, 80, 0.45);
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-periwinkle: var(--periwinkle);
+  --color-periwinkle-600: var(--periwinkle-600);
+  --color-periwinkle-100: var(--periwinkle-100);
+  --color-lavender: var(--lavender);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-headline-grey: var(--headline-grey);
+  --color-card-on-blue: var(--card-on-blue);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #0e1a1d;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 26px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.glass-light {
+  background: var(--glass-light-bg);
+  border: 1px solid var(--glass-light-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+.glass-dark {
+  background: var(--glass-dark-bg);
+  border: 1px solid var(--glass-dark-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+.glass-on-blue {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+}
+
+.squircle {
+  corner-shape: squircle;
+}
+
+.fade-top-mask {
+  mask-image: linear-gradient(to bottom, transparent 0, black 96px, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 96px, black 100%);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fallback botanical backdrop when an image fails to load. */
+.botanical-fallback {
+  background:
+    radial-gradient(60% 50% at 20% 80%, rgba(46, 92, 160, 0.75), transparent 70%),
+    radial-gradient(50% 40% at 80% 70%, rgba(90, 70, 170, 0.6), transparent 70%),
+    radial-gradient(70% 60% at 50% 10%, rgba(30, 80, 90, 0.9), transparent 70%),
+    linear-gradient(180deg, #0f2a2e, #0b1a24 60%, #0a1420);
+}
+
+@keyframes fd-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes fd-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

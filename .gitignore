@@ -1,0 +1,11 @@
+.env
+.env.local
+.env*.local
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+*.mp4
+test-results/
