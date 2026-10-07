@@ -29,7 +29,7 @@ FrontDesk AI is a voice receptionist for outpatient clinics. A patient calls the
 
 | Path | Method | What it is |
 |---|---|---|
-| `/` | GET | Redirects to `/call` |
+| `/` | GET | Landing page for FrontDesk AI, with live clinic numbers from the DB |
 | `/call` | GET | Patient phone page (idle, connecting, in-call, ended, error). `/call?preview=<state>` renders one state statically |
 | `/monitor` | GET | Live front-desk monitor for the projector. `/monitor?admin=<ADMIN_TOKEN>` adds a reset button |
 | `/api/health` | GET | DB status, row counts, enabled features |

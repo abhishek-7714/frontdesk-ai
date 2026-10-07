@@ -84,6 +84,17 @@ export const RefreshIcon = ({ size, ...p }: P) => (
     <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5" />
   </svg>
 );
+export const ArrowRightIcon = ({ size, ...p }: P) => (
+  <svg {...base(size, p)}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+export const ScreenIcon = ({ size, ...p }: P) => (
+  <svg {...base(size, p)}>
+    <rect x="3" y="4.5" width="18" height="12" rx="2.5" />
+    <path d="M9 20h6M12 16.5V20" />
+  </svg>
+);
 
 /** Sprout mark: two leaves on a stem, echoing the reference logo without copying it. */
 export const LeafMark = ({ size = 28, ...p }: P) => (
