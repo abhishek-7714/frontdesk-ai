@@ -43,3 +43,14 @@
 - `/api/mcp/<MCP_SECRET>` (mcp-handler 2.x, stateless Streamable HTTP; wrong secret → 404). Tools: `get_schedule`, `get_patient_brief`, `list_recent_calls`, `search_policy`, descriptions verbatim from SPEC §8, clean markdown output.
 - Checkpoint: after a simulated call, `npx tsx scripts/mcp-check.ts` lists all 4 tools and runs each; `get_schedule` shows the new booking under "New from the AI receptionist" with intake, and the patient brief includes intake + call summary.
 - Decision: MCP Inspector v2 requires Node ≥ 22 (this Mac has Node 20) and Inspector v1's CLI rewrote the URL path to `/mcp`, so verification uses `scripts/mcp-check.ts`, which speaks the same JSON-RPC over Streamable HTTP. With Node 22 you can still use the Inspector UI: `npx @modelcontextprotocol/inspector`, transport Streamable HTTP, URL `https://<domain>/api/mcp/<MCP_SECRET>`.
+
+### Phase 5 — Phone page ✅ (UI + SDK wiring) · live voice ⛔ blocked on ElevenLabs key
+- `/call` with idle, connecting, in-call, ended, error states (`/call?preview=<state>` renders each statically). Screenshots at 390×844 in `screenshots/call-390-*.png`, laptop at `screenshots/call-1440-idle.png`.
+- Round 1 vs `01-hero-botanical.png`: the photo was hidden behind the body background (stacking context) and the in-call view overflowed 844 px. Round 2: `isolate` wrapper, tighter in-call spacing, radial scrim + text shadow for 4.5:1 text contrast over the flowers.
+- ElevenLabs wiring per SPEC §10.1: mic permission inside the tap, `POST /api/calls` + `GET /api/eleven/session` (signed URL; falls back to `agentId` if the server returns one), five client tools that POST `{call_id, ...params}` and return `JSON.stringify(result)` or the speakable message, 6 s timeout fallback, final transcripts forwarded with role mapping, `/end` exactly once (ref guard), Screen Wake Lock.
+- Not verified: a real voice call (needs ELEVENLABS_API_KEY + agent).
+
+### Task 4 — ElevenLabs agent ⛔ SKIPPED (no ELEVENLABS_API_KEY in .env)
+- Prepared `scripts/create-eleven-agent.ts` (request format checked against current docs: `POST /v1/convai/tools` ×5 with `type: client`, `expects_response: true`, then `POST /v1/convai/agents/create` with `tool_ids`, `llm: claude-haiku-4-5` (fastest Claude in their list; falls back to sonnet-4-5 → sonnet-4-6 → platform default), auth enabled, 300 s max, first message, system prompt from `agent/prompt.txt`, and an Indian-English female voice found via `/v1/shared-voices`). Dry run passes. It writes `ELEVENLABS_AGENT_ID` into `.env.local`.
+- `/api/eleven/session` returns 503 "Voice agent is not configured" until both the key and the agent ID are set; verify it returns `{ signedUrl }` after setup.
+- Dashboard fallback steps are in the README ("ElevenLabs agent setup").
