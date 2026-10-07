@@ -7,7 +7,7 @@ import { EventFeed } from "./EventCards";
 import { IdleWidgets, type IdleStats } from "./IdleState";
 import { Waveform } from "../ui/Waveform";
 import { LiveDot } from "../ui/LiveDot";
-import { CheckIcon, LeafMark, RefreshIcon, SparkIcon } from "../ui/icons";
+import { AlertIcon, CheckIcon, LeafMark, RefreshIcon, SparkIcon } from "../ui/icons";
 
 const DESIGN_W = 1920;
 const DESIGN_H = 1080;
@@ -131,21 +131,38 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
   const firstOpen = useRef(true);
   useEffect(() => {
     void loadSnapshot();
-    const es = new EventSource("/api/monitor/stream");
-    es.onopen = () => {
-      setConn("live");
-      if (!firstOpen.current) void loadSnapshot();
-      firstOpen.current = false;
+    let es: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    let disposed = false;
+    // The browser retries transient drops itself; if it gives up (CLOSED, e.g. a 502 from a proxy), reopen with backoff.
+    const connect = () => {
+      if (disposed) return;
+      es = new EventSource("/api/monitor/stream");
+      es.onopen = () => {
+        attempt = 0;
+        setConn("live");
+        if (!firstOpen.current) void loadSnapshot();
+        firstOpen.current = false;
+      };
+      es.onerror = () => {
+        if (es?.readyState !== EventSource.CLOSED) return setConn("connecting");
+        setConn("down");
+        es.close();
+        retryTimer = setTimeout(connect, Math.min(10_000, 1000 * 2 ** attempt++));
+      };
+      es.addEventListener("fd", (msg) => {
+        const event = JSON.parse((msg as MessageEvent).data) as MonitorEvent;
+        dispatch({ type: "event", event });
+        if (event.type === "demo.reset" || event.type === "call.ended") void loadSnapshot();
+      });
     };
-    es.onerror = () => setConn(es.readyState === EventSource.CLOSED ? "down" : "connecting");
-    es.addEventListener("fd", (msg) => {
-      const event = JSON.parse((msg as MessageEvent).data) as MonitorEvent;
-      dispatch({ type: "event", event });
-      if (event.type === "demo.reset" || event.type === "call.ended") void loadSnapshot();
-    });
+    connect();
     const statsTimer = setInterval(() => void loadSnapshot(), 30_000);
     return () => {
-      es.close();
+      disposed = true;
+      es?.close();
+      clearTimeout(retryTimer);
       clearInterval(statsTimer);
     };
   }, [loadSnapshot]);
@@ -274,7 +291,7 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
                     >
                       <div className="squircle rounded-[28px] bg-white p-8 text-ink shadow-[var(--shadow-float)]">
                         <div className="flex items-center justify-between">
-                          <span className="text-[26px] leading-tight tracking-[-0.02em]">Pre-visit brief</span>
+                          <span className="text-[26px] leading-tight tracking-[-0.02em]">{outcome === "booked" ? "Pre-visit brief" : "Call summary"}</span>
                           <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#E2E6EF] px-3.5 text-[14px] font-medium text-ink-muted">
                             <SparkIcon size={14} /> Summary
                           </span>
@@ -304,10 +321,14 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
                       transition={{ type: "spring", stiffness: 160, damping: 18 }}
                     >
                       <span className="inline-flex h-14 items-center gap-3 rounded-full bg-white pl-2.5 pr-6 text-[18px] font-medium text-periwinkle-600 shadow-[var(--shadow-float)]">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-periwinkle text-white">
-                          <CheckIcon size={18} strokeWidth={2.4} />
+                        <span className={`flex h-9 w-9 items-center justify-center rounded-full text-white ${outcome === "escalated" ? "bg-danger" : "bg-periwinkle"}`}>
+                          {outcome === "escalated" ? <AlertIcon size={18} /> : <CheckIcon size={18} strokeWidth={2.4} />}
                         </span>
-                        Shared with {state.handoff} · available in Claude
+                        {outcome === "escalated"
+                          ? "Front desk alerted · logged in Claude"
+                          : outcome === "information"
+                            ? "Logged for the front desk · available in Claude"
+                            : `Shared with ${state.handoff} · available in Claude`}
                       </span>
                     </motion.div>
                   )}

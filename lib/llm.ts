@@ -9,6 +9,8 @@ export type SummaryInput = {
   appointment: { doctor_name: string; day: string; time: string; reason: string } | null;
   intake: { chief_complaint: string | null; duration: string | null; severity: string | null; current_medications: string | null; notes: string | null } | null;
   escalation: { reason: string; urgency: string } | null;
+  /** Policy documents the agent consulted during the call. */
+  topics: string[];
   transcript: { role: string; text: string }[];
 };
 
@@ -30,8 +32,13 @@ export function templateSummary(s: SummaryInput): string {
     return parts.join(" ");
   }
   if (s.escalation) return `${name} was escalated to staff (${s.escalation.urgency}): ${s.escalation.reason}.`;
+  if (s.topics.length) return `Information-only call. Asha answered from clinic policy on ${listJoin(s.topics.map((t) => t.toLowerCase()))}. Nothing was booked.`;
   const asked = s.transcript.filter((l) => l.role === "patient").slice(0, 2).map((l) => l.text).join(" ");
   return asked ? `Information-only call. The caller asked: "${truncate(asked, 160)}"` : "Short call with no booking.";
+}
+
+function listJoin(items: string[]): string {
+  return items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 export async function generateSummary(s: SummaryInput): Promise<Summary> {
@@ -44,6 +51,7 @@ export async function generateSummary(s: SummaryInput): Promise<Summary> {
     appointment: s.appointment,
     intake: s.intake,
     escalation: s.escalation,
+    policy_topics: s.topics,
     transcript: s.transcript.slice(-40).map((l) => `${l.role === "patient" ? "Patient" : "Receptionist"}: ${l.text}`).join("\n"),
   };
   try {

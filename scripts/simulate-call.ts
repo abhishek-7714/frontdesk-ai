@@ -7,6 +7,8 @@ import "./load-env";
 //   npm run simulate -- --base https://<app>.up.railway.app
 //   npm run simulate -- --speed 3                      # 3x faster (for tests)
 //   npm run simulate -- --reset                        # reset demo data first
+//   npm run simulate -- --scenario info                # policy questions only → "Information only"
+//   npm run simulate -- --scenario emergency           # chest pain → "Escalated to staff"
 
 const args = process.argv.slice(2);
 const flag = (name: string) => {
@@ -16,6 +18,7 @@ const flag = (name: string) => {
 const BASE = (flag("base") ?? process.env.APP_URL ?? "http://localhost:3100").replace(/\/$/, "");
 const SPEED = Number(flag("speed") ?? 1) || 1;
 const NAME = flag("name") ?? "Abhishek Jain";
+const SCENARIO = flag("scenario") ?? "booking";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms / SPEED));
 const jitter = (min: number, max: number) => min + Math.random() * (max - min);
@@ -51,8 +54,22 @@ async function main() {
     return r;
   };
 
+  const scenarios: Record<string, (say: SayFn, tool: ToolFn) => Promise<void>> = { booking: bookingCall, info: infoCall, emergency: emergencyCall };
+  const run = scenarios[SCENARIO];
+  if (!run) throw new Error(`Unknown --scenario ${SCENARIO} (booking, info, emergency)`);
   await sleep(1200);
   await say("agent", "Hello, thank you for calling Fernleaf Clinic. This is Asha. How can I help you today?");
+  await run(say, tool);
+  await sleep(800);
+  const end = await post<{ summary?: string }>(`/api/calls/${call_id}/end`, {});
+  console.log(`ended. summary: ${end.summary}`);
+}
+
+type SayFn = (role: "patient" | "agent", text: string) => Promise<void>;
+type ToolFn = (name: string, params: Record<string, unknown>) => Promise<ToolResult>;
+
+// The rehearsed demo: knee pain → policy → slots → book → intake.
+async function bookingCall(say: SayFn, tool: ToolFn) {
   await say("patient", "Hi Asha. I've had knee pain for about two weeks. Can I see an orthopaedic doctor this week?");
   await tool("search_policy", { query: "orthopaedics knee appointment what to bring" });
   const avail = await tool("check_availability", { specialty: "Orthopaedics", day_preference: "this week" });
@@ -88,9 +105,38 @@ async function main() {
     `All set. You're seeing Dr. Meera Iyer ${chosen.spoken}. Please bring any previous X-rays or reports, and wear loose clothing. Take care, ${NAME.split(" ")[0]}!`,
   );
   await say("patient", "Thank you so much. Bye!");
-  await sleep(800);
-  const end = await post<{ summary?: string }>(`/api/calls/${call_id}/end`, {});
-  console.log(`ended. summary: ${end.summary}`);
+}
+
+// Questions only, nothing booked.
+async function infoCall(say: SayFn, tool: ToolFn) {
+  await say("patient", "Hi. Do you accept Star Health insurance for a regular consultation?");
+  const ins = await tool("search_policy", { query: "Star Health insurance cashless consultation" });
+  await say("agent", spokenAnswer(ins, "Let me have the front desk confirm that for you."));
+  await say("patient", "Okay. And what are your timings on Sunday?");
+  const hours = await tool("search_policy", { query: "clinic timings Sunday opening hours" });
+  await say("agent", spokenAnswer(hours, "The front desk will call you back with the Sunday timings."));
+  await say("patient", "Great, that's all I needed. Thank you!");
+  await say("agent", "You're welcome. Take care, and call us anytime.");
+}
+
+// A red flag mid-call: escalate and stop booking.
+async function emergencyCall(say: SayFn, tool: ToolFn) {
+  await say("patient", "Hello, I want to book a cardiology appointment. I've had some chest pain since this morning and I'm a bit breathless.");
+  await tool("flag_for_staff", { reason: "Caller reports chest pain since this morning with breathlessness", urgency: "emergency" });
+  await say(
+    "agent",
+    "I'm concerned about what you're describing. Please call 112 or go to the nearest emergency department right now. I've alerted our staff as well.",
+  );
+  await say("patient", "Okay, I'll go now.");
+  await say("agent", "Please go straight away. Take care.");
+}
+
+function spokenAnswer(r: ToolResult, fallback: string): string {
+  const hits = r.result?.matches as { content: string }[] | undefined;
+  const text = hits?.[0]?.content;
+  if (!text) return fallback;
+  const first = text.replace(/\s+/g, " ").split(/(?<=\.)\s/).slice(0, 2).join(" ");
+  return first.length > 220 ? `${first.slice(0, 217)}...` : first;
 }
 
 main().catch((err) => {

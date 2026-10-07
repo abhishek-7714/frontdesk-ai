@@ -60,11 +60,18 @@ export async function endCall(callId: string, elevenConversationId?: string) {
     [callId],
   );
 
+  const topics = await query<{ title: string }>(
+    `SELECT DISTINCT payload->'top'->>'doc_title' AS title FROM call_events
+     WHERE call_id = $1 AND type = 'tool.search_policy' AND payload->'top' IS NOT NULL`,
+    [callId],
+  );
+
   const summary = await generateSummary({
     patient_name: appt?.patient_name ?? null,
     appointment: appt ? { doctor_name: appt.doctor_name, day: longDay(appt.starts_at), time: timeLabel(appt.starts_at), reason: appt.reason } : null,
     intake,
     escalation,
+    topics: topics.map((t) => t.title),
     transcript,
   });
   await query(`UPDATE calls SET summary = $2, summary_input_tokens = $3, summary_output_tokens = $4 WHERE id = $1`, [

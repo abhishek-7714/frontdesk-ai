@@ -104,15 +104,17 @@ export function CallScreen({ clinicName, preview }: { clinicName: string; previe
       return;
     }
     try {
-      const [{ call_id }, session] = await Promise.all([
-        postJson("/api/calls", {}) as Promise<{ call_id: string }>,
-        fetch("/api/eleven/session", { cache: "no-store" }).then((r) => r.json() as Promise<{ signedUrl?: string; agentId?: string | null; error?: string }>),
-      ]);
-      if (!call_id) throw new Error("no call id");
-      callIdRef.current = call_id;
-
+      // Session first: a call row flips the projector to "Incoming call", so only create it once voice can start.
+      callIdRef.current = null;
+      const session = await fetch("/api/eleven/session", { cache: "no-store" }).then(
+        (r) => r.json() as Promise<{ signedUrl?: string; agentId?: string | null; error?: string }>,
+      );
       const sessionTarget = session.signedUrl ? { signedUrl: session.signedUrl } : session.agentId ? { agentId: session.agentId } : null;
       if (!sessionTarget) throw new Error(session.error ?? "Voice line is not configured.");
+
+      const { call_id } = (await postJson("/api/calls", {})) as { call_id: string };
+      if (!call_id) throw new Error("no call id");
+      callIdRef.current = call_id;
 
       try {
         const nav = navigator as Navigator & { wakeLock?: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> } };
