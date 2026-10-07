@@ -20,3 +20,12 @@
   - TypeScript pinned to 5.x (npm resolved TS 7, which Next 15 does not support).
   - Seed guarantee: Dr. Iyer's 2nd upcoming working day has the morning fully booked and **16:00 open**, so "ortho this week" deterministically offers the rehearsed 4 PM slot.
   - The seed is relative to "now": **re-run `npm run seed` on the morning of the demo** (reset alone does not move dates).
+
+### Phase 2 — Core and tool endpoints ✅
+- `lib/core/*` (calls, policy, scheduling, intake, escalation, patients), `lib/schemas.ts`, `lib/events.ts`, `/api/tools/[tool]`, calls routes, SSE stream, latest snapshot, admin reset, `/api/eleven/session`.
+- Checkpoint: `bash scripts/curl-checkpoint.sh` creates a call → policy search (top hit "Orthopaedics › What to bring") → availability for "ortho this week" (today 5 PM, Fri 10:30, **Sat 4 PM**) → book (repeat is idempotent, same appointment id) → intake ×2 (merged) → end (template summary). `npx tsx scripts/check-schedule.ts this_week` shows the booking with intake + summary; `npm run reset` removes it and reopens the slot.
+- Decisions:
+  - FTS fallback uses an OR query with a small synonym table (knee→orthopaedics, cost→fee…), because `websearch_to_tsquery` ANDs every word and returned nothing for natural questions.
+  - Tool inputs tolerate LLM quirks: null/"" optional fields, numeric strings for slot_id, unknown time_preference → "any".
+  - `get_schedule` markdown opens with a "New from the AI receptionist" callout so the fresh booking is impossible to miss among ~30 seeded appointments.
+  - Tools auto-create a call row if a tool arrives with an unknown call_id (never fails the agent).

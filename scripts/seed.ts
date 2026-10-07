@@ -193,6 +193,7 @@ async function main() {
     // Insert slots, appointments and seed intakes.
     let slotCount = 0;
     let apptCount = 0;
+    const usedToday = new Map<string, Set<number>>();
     for (const p of plan) {
       const doctor = DOCTORS.find((d) => d.slug === p.doctor)!;
       const startsAt = istInstant(p.day, p.hh, p.mm);
@@ -203,7 +204,13 @@ async function main() {
       slotCount++;
       if (p.status === "booked") {
         const s = pick(REASONS[doctor.specialty]);
-        const patientId = pick(patientIds);
+        // Never the same patient twice in one doctor's day.
+        const usedKey = `${p.doctor}:${p.day}`;
+        const used = usedToday.get(usedKey) ?? new Set<number>();
+        let patientId = pick(patientIds);
+        while (used.has(patientId)) patientId = pick(patientIds);
+        used.add(patientId);
+        usedToday.set(usedKey, used);
         const a = await client.query<{ id: number }>(
           `INSERT INTO appointments (slot_id, doctor_id, patient_id, reason, source, created_at)
            VALUES ($1,$2,$3,$4,'seed', now() - ($5 || ' days')::interval) RETURNING id`,
