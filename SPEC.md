@@ -17,7 +17,7 @@ The single goal of this build is **one flawless four-minute live demo**. Every d
 | 1 | Opens `/call` on their phone, taps **Call the clinic**, phone on speaker near the mic | Monitor flips from "Waiting for a call" to "Incoming call", a timer starts, a live waveform line appears |
 | 2 | "I've had knee pain for about two weeks. Can I see an orthopaedic doctor this week?" | The patient's words appear in the transcript card; a **Policy checked** card appears showing the orthopaedics policy chunk the agent retrieved |
 | 3 | Agent offers 2 or 3 slots with doctor, day, time and fee | A **Slots offered** card animates in, styled like a scheduled-visits widget, with time chips |
-| 4 | "Thursday at 4 works." Agent confirms name and phone | A large **Appointment booked** card lands: big "16:00", doctor, day |
+| 4 | "Thursday at 4 works." Agent confirms name | A large **Appointment booked** card lands: big "16:00", doctor, day |
 | 5 | Agent asks two or three intake questions; presenter answers | An **Intake** card fills in field by field |
 | 6 | Presenter hangs up | A **Summary** card appears, then a pill: "Shared with Dr. Meera Iyer" |
 | 7 | Presenter switches to Claude (claude.ai, custom connector added) as the doctor and types: "What appointments do I have this week?" | Claude calls our MCP tool `get_schedule` and lists the week, including the patient who booked one minute ago, with the intake summary |
@@ -609,7 +609,7 @@ Booking flow
 2. Call check_availability with the specialty and the patient's day and time preferences in their own words (for example "this week", "Thursday", "tomorrow evening").
 3. Offer at most three options using the "spoken" text, and mention the doctor's name and consultation fee once.
 4. When they choose, confirm their full name, and ask for a mobile number. Read the number back once.
-5. Call book_appointment with the chosen slot_id, name, phone, and a short reason in the patient's words.
+5. Call book_appointment with the chosen slot_id, name, and a short reason in the patient's words (no phone number; it comes from the call).
 6. Then say you will ask two or three quick questions for the doctor. Ask, one at a time: what the problem is and how long it has been going on; how bad it is and what makes it worse; whether they take any regular medicines. After each answer, call save_intake with what you have so far.
 7. Close: recap the doctor, day and time, remind them to bring previous reports, and say goodbye.
 
