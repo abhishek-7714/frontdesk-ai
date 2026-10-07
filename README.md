@@ -151,18 +151,31 @@ Live: **https://frontdesk-ai-production-eff4.up.railway.app** (Railway project `
 | Lighthouse accessibility | `/call` 100 · `/monitor` 100 · `/` 100 |
 | Secrets in client bundles | None. `MCP_SECRET`, `ADMIN_TOKEN` and `DATABASE_URL` values, and the API key names, are absent from `static/` |
 
-## Cost per call
+## Cost per call (measured)
 
-> **To fill in after the first real call.** These numbers must come from a measured call. They are not filled in yet because no live voice call has run.
+These numbers come from the three real test calls on 8 Oct 2026, read from the ElevenLabs conversation records (`GET /v1/convai/conversations/:id`). The plan is ₹100 for 30,000 credits, so 1 credit = ₹0.0033.
 
-| Item | Source | Per call |
-|---|---|---|
-| ElevenLabs Conversational AI minutes | ElevenLabs dashboard → call history | _TBD_ |
-| Claude Haiku summary tokens | `SELECT summary_input_tokens, summary_output_tokens FROM calls ORDER BY started_at DESC LIMIT 1;` | _TBD_ |
-| Embeddings (one query per policy question) | `text-embedding-3-small`, ~20 tokens | ≈ $0 |
-| **Total** | | _TBD_ |
+| Call | Length | Credits billed | Claude Haiku 4.5 input tokens | Output tokens |
+|---|---|---|---|---|
+| 1 | 118 s | 623 | 46,890 | 844 |
+| 2 | 159 s | 745 | 50,832 | 927 |
+| 3 | 156 s | 797 | 53,483 | 953 |
+| **Average** | **144 s (2.4 min)** | **722** | **50,402** | **908** |
 
-To project costs to 10,000 users: monthly cost = cost per call × calls per user per month × 10,000. Hosting adds a fixed Railway cost for one app and one Postgres instance.
+- **One typical session (one booking call): 722 credits ≈ ₹2.41**, or about ₹1.00 per minute of talk.
+- **LLM tokens per call:** about 50,000 input and 900 output (Claude Haiku 4.5 inside ElevenLabs). Input is large because the system prompt and the growing conversation are re-sent on each of the ~16 agent turns. ElevenLabs reported zero cached input tokens.
+- **Other AI cost: ₹0 today.** The pre-visit brief uses the template (no Anthropic key) and policy search uses full-text search (no OpenAI key). With both keys on, the brief costs about 1,000 Haiku tokens and the embeddings about 20 tokens per question, a few paise per call.
+- **Hosting:** one Railway app and one Postgres instance, a fixed monthly cost that doesn't grow with calls at this scale.
+
+### At 10,000 users
+
+Assume 1 call per user per month: 10,000 calls × ₹2.41 ≈ **₹24,000 per month** (7.2 million credits). The current plan's 30,000 credits cover only about 41 calls a month, so this needs a higher ElevenLabs tier, where credits cost less.
+
+What we'd change at that scale:
+1. **Prompt caching.** The ~50,000 input tokens per call are mostly the same prompt re-sent every turn; caching it cuts the LLM part sharply.
+2. **Shorter turns.** Asha's replies are already capped at one or two sentences; fewer turns per booking lowers both voice and LLM cost.
+3. **Telephony and speech.** A SIP phone number replaces the web page, and self-hosted open speech models become worth testing once volume justifies the hardware.
+4. **RAG with embeddings.** Turn on `text-embedding-3-small` for better paraphrase matching. The cost is negligible.
 
 ## Known limitations
 
