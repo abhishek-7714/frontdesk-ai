@@ -73,6 +73,21 @@ The doctor can also act from Claude. Each of these tools asks Claude to confirm 
 
 To test without Claude, run `npx tsx scripts/mcp-check.ts`, which lists and calls all four tools. The MCP Inspector UI also works with Node 22 or newer: run `npx @modelcontextprotocol/inspector`, choose Streamable HTTP, and enter the same URL.
 
+## API keys: where to put your own
+
+This submission contains **no API keys**. Copy `.env.example` to **`.env.local`** in the project root and fill in:
+
+| Variable | Needed for | Get it from |
+|---|---|---|
+| `DATABASE_URL` | Everything | Postgres 16 + pgvector (Docker one-liner below) |
+| `MCP_SECRET`, `ADMIN_TOKEN` | MCP server, monitor reset | Any random strings (`openssl rand -hex 24`) |
+| `ELEVENLABS_API_KEY` | Real voice calls | elevenlabs.io → API Keys (Agents: Write, Voices: Write) |
+| `ELEVENLABS_AGENT_ID` | Real voice calls | Written for you by `npx tsx scripts/create-eleven-agent.ts` |
+| `OPENAI_API_KEY` (optional) | Embedding search | platform.openai.com (else full-text search) |
+| `ANTHROPIC_API_KEY` (optional) | Claude-written briefs | console.anthropic.com (else template) |
+
+The full step-by-step guide is in **[INSTRUCTIONS.md](INSTRUCTIONS.md)**. It covers verifying with no keys at all (simulated call + MCP check), real voice with your own ElevenLabs key, and troubleshooting.
+
 ## Setup
 
 Requires Node 20+ and Postgres 16 with pgvector.
