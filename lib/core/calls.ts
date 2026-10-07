@@ -202,6 +202,14 @@ export async function resetDemo() {
     await c.query(`DELETE FROM appointments WHERE id = ANY($1::int[])`, [apptIds]);
     await c.query(`UPDATE slots SET status = 'open' WHERE id = ANY($1::int[]) AND starts_at > now()`, [slotIds]);
     await c.query(`UPDATE slots SET status = 'blocked' WHERE id = ANY($1::int[]) AND starts_at <= now()`, [slotIds]);
+    // Undo doctor-side actions from Claude: reopen exactly the slots a day block closed.
+    await c.query(
+      `UPDATE slots SET status = 'open' WHERE id IN (SELECT unnest(slot_ids) FROM day_blocks) AND status = 'blocked' AND starts_at > now()
+         AND id NOT IN (SELECT slot_id FROM appointments WHERE status = 'booked')`,
+    );
+    await c.query(`DELETE FROM day_blocks`);
+    await c.query(`DELETE FROM desk_notes`);
+    await c.query(`UPDATE appointments SET needs_reschedule = false WHERE needs_reschedule`);
     const calls = await c.query(`DELETE FROM calls`);
     const patients = await c.query(`DELETE FROM patients WHERE is_seed = false AND id NOT IN (SELECT patient_id FROM appointments)`);
     return { appointments: apptIds.length, calls: calls.rowCount ?? 0, patients: patients.rowCount ?? 0 };

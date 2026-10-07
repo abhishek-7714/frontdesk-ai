@@ -5,6 +5,8 @@ import { initialState, reducer, speakingState, type MonitorEvent } from "./state
 import { TranscriptCard } from "./TranscriptCard";
 import { EventFeed } from "./EventCards";
 import { IdleWidgets, type IdleStats } from "./IdleState";
+import { DeskNotices } from "./DeskNotices";
+import type { DeskNote } from "@/lib/core/desk";
 import { Waveform } from "../ui/Waveform";
 import { LiveDot } from "../ui/LiveDot";
 import { AlertIcon, CheckIcon, LeafMark, RefreshIcon, SparkIcon } from "../ui/icons";
@@ -110,6 +112,7 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
   const canvas = useCanvas();
   const [state, dispatch] = useReducer(reducer, initialState);
   const [stats, setStats] = useState<IdleStats | null>(null);
+  const [notes, setNotes] = useState<DeskNote[]>([]);
   const [conn, setConn] = useState<"connecting" | "live" | "down">("connecting");
   const [resetting, setResetting] = useState(false);
   const live = state.phase === "live";
@@ -118,8 +121,9 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
   const loadSnapshot = useCallback(async () => {
     try {
       const res = await fetch("/api/monitor/latest", { cache: "no-store" });
-      const data = (await res.json()) as { call: { id: string; ended_at: string | null } | null; events: MonitorEvent[]; stats: IdleStats | null };
+      const data = (await res.json()) as { call: { id: string; ended_at: string | null } | null; events: MonitorEvent[]; stats: IdleStats | null; notes?: DeskNote[] };
       if (data.stats) setStats(data.stats);
+      if (data.notes) setNotes(data.notes);
       const stale = data.call?.ended_at && Date.now() - Date.parse(data.call.ended_at) > STALE_MS;
       dispatch({ type: "snapshot", callId: data.call && !stale ? data.call.id : null, events: data.call && !stale ? data.events : [] });
     } catch {
@@ -153,6 +157,8 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
       };
       es.addEventListener("fd", (msg) => {
         const event = JSON.parse((msg as MessageEvent).data) as MonitorEvent;
+        // Doctor → front desk notices are not part of a call: just re-read them.
+        if (event.type === "desk.updated") return void loadSnapshot();
         dispatch({ type: "event", event });
         if (event.type === "demo.reset" || event.type === "call.ended") void loadSnapshot();
       });
@@ -208,7 +214,7 @@ export function MonitorShell({ adminToken }: { adminToken: string | null }) {
             </span>
             <span className="text-[22px] font-medium tracking-[-0.02em]">FrontDesk AI</span>
           </div>
-          <div className="text-[18px] text-white/80">Fernleaf Clinic · Live front desk</div>
+          <DeskNotices notes={notes} adminToken={adminToken} />
           <div className="flex items-center gap-4">
             {adminToken && (
               <button

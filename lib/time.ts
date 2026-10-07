@@ -24,6 +24,15 @@ export function istInstant(day: IstDay, hh = 0, mm = 0): Date {
   return new Date(day * DAY_MS - OFFSET_MS + (hh * 60 + mm) * 60_000);
 }
 
+/** "2026-10-10" for a SQL date column. */
+export function isoDate(day: IstDay): string {
+  return new Date(day * DAY_MS).toISOString().slice(0, 10);
+}
+
+export function dayFromIso(iso: string): IstDay {
+  return Math.round(Date.parse(`${iso}T00:00:00Z`) / DAY_MS);
+}
+
 export function weekday(day: IstDay): number {
   // 1970-01-01 was a Thursday (4).
   return (((day + 4) % 7) + 7) % 7;

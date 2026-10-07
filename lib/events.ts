@@ -11,7 +11,8 @@ export type EventType =
   | "tool.flag_for_staff"
   | "call.ended"
   | "handoff.ready"
-  | "demo.reset";
+  | "demo.reset"
+  | "desk.updated";
 
 export type CallEvent = {
   id: number;
@@ -35,7 +36,8 @@ export function bus(): EventEmitter {
 export async function emit(callId: string, type: EventType, payload: unknown): Promise<void> {
   const body = (payload ?? {}) as Record<string, unknown>;
   try {
-    if (type === "demo.reset") {
+    // Not tied to a call, so not persisted in call_events: monitors re-read state on receipt.
+    if (type === "demo.reset" || type === "desk.updated") {
       publish({ id: -Date.now(), call_id: callId, type, payload: body, at: new Date().toISOString() });
       return;
     }

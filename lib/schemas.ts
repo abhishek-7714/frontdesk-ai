@@ -100,4 +100,18 @@ export const mcpSearchPolicyInput = z.object({
   query: z.string().min(1).describe("What to look up in clinic policy"),
 });
 
+export const blockDayInput = z.object({
+  day: z.string().min(1).describe('The single day to block, in the doctor\'s words: "Saturday", "tomorrow", "the 10th", "Saturday 10 October"'),
+  doctor: z.string().optional().describe("Doctor name. Defaults to Dr. Meera Iyer."),
+  reason: z.string().optional().describe('Short reason shown to the front desk, e.g. "conference", "personal leave"'),
+});
+
+export const reopenDayInput = blockDayInput.pick({ day: true, doctor: true });
+
+export const notifyFrontDeskInput = z.object({
+  message: z.string().min(1).describe("The note for the front desk, in plain words"),
+  urgency: z.enum(["routine", "urgent"]).optional().describe("urgent shows the note in red on the front-desk monitor (default routine)"),
+  doctor: z.string().optional().describe("Doctor sending the note. Defaults to Dr. Meera Iyer."),
+});
+
 export type ScheduleRange = z.infer<typeof scheduleRange>;

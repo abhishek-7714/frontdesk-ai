@@ -253,6 +253,7 @@ export type ScheduleItem = {
   current_medications: string | null;
   intake_notes: string | null;
   summary: string | null;
+  needs_reschedule: boolean;
 };
 
 export function scheduleWindow(range: ScheduleRange = "next_7_days", now: Date = new Date()): { from: IstDay; to: IstDay; label: string } {
@@ -276,7 +277,7 @@ export async function getSchedule(opts: { doctor?: string; range?: ScheduleRange
   const win = scheduleWindow(opts.range, opts.now);
   const items = await query<ScheduleItem>(
     `SELECT a.id AS appointment_id, s.starts_at, p.name AS patient_name, a.reason, a.source, a.created_at,
-            i.chief_complaint, i.duration, i.severity, i.current_medications, i.notes AS intake_notes, c.summary
+            i.chief_complaint, i.duration, i.severity, i.current_medications, i.notes AS intake_notes, c.summary, a.needs_reschedule
      FROM appointments a
      JOIN slots s ON s.id = a.slot_id
      JOIN patients p ON p.id = a.patient_id

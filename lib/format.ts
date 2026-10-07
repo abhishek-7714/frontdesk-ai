@@ -1,6 +1,7 @@
 // Markdown renderers for the doctor's view in Claude (MCP tool outputs).
 import { getSchedule, type ScheduleItem } from "./core/scheduling";
 import { getPatientBrief } from "./core/patients";
+import { blockDay, blockedDays, notifyFrontDesk, reopenDay } from "./core/desk";
 import { listRecentCalls } from "./core/calls";
 import { searchPolicy } from "./core/policy";
 import { longDay, relativeAgo, timeLabel, istDayOf } from "./time";
@@ -23,10 +24,12 @@ function intakeLine(i: Pick<ScheduleItem, "chief_complaint" | "duration" | "seve
 export async function scheduleMarkdown(opts: { doctor?: string; range?: ScheduleRange } = {}): Promise<string> {
   const now = new Date();
   const { doctor, window, items } = await getSchedule({ ...opts, now });
+  const blocked = new Map((await blockedDays(doctor.id, window.from, window.to)).map((b) => [b.day, b.reason]));
   const header = `**${doctor.name} · ${doctor.specialty} · ${window.label} (${items.length} appointment${items.length === 1 ? "" : "s"})**`;
-  if (!items.length) return `${header}\n\nNo appointments booked ${window.label}.`;
+  if (!items.length && !blocked.size) return `${header}\n\nNo appointments booked ${window.label}.`;
 
   const byDay = new Map<number, ScheduleItem[]>();
+  for (const d of [...blocked.keys()].sort((a, b) => a - b)) byDay.set(d, []);
   for (const it of items) {
     const d = istDayOf(it.starts_at);
     byDay.set(d, [...(byDay.get(d) ?? []), it]);
@@ -39,12 +42,20 @@ export async function scheduleMarkdown(opts: { doctor?: string; range?: Schedule
       lines.push(`> - ${longDay(it.starts_at)}, ${timeLabel(it.starts_at)} · **${it.patient_name}** · ${it.reason} · booked ${relativeAgo(it.created_at, now)}`);
     }
   }
-  for (const [day, list] of byDay) {
-    lines.push("", `### ${longDay(day)}`);
+  for (const [day, list] of [...byDay].sort((a, b) => a[0] - b[0])) {
+    if (blocked.has(day)) {
+      const reason = blocked.get(day);
+      const pending = list.filter((i) => i.needs_reschedule).length;
+      lines.push("", `### ${longDay(day)} · Blocked${reason ? ` (${reason})` : ""}`);
+      lines.push(`*No new bookings this day. ${pending ? `${pending} patient${pending === 1 ? "" : "s"} flagged for the front desk to reschedule.` : "No patients to move."}*`);
+    } else {
+      lines.push("", `### ${longDay(day)}`);
+    }
     for (const it of list) {
       const isFresh = fresh.includes(it);
       const name = isFresh ? `**${it.patient_name}**` : it.patient_name;
-      const tag = isFresh ? ` · *Booked by AI receptionist ${relativeAgo(it.created_at, now)}*` : "";
+      const tag =
+        (isFresh ? ` · *Booked by AI receptionist ${relativeAgo(it.created_at, now)}*` : "") + (it.needs_reschedule ? " · ⚠️ *Needs rescheduling*" : "");
       lines.push(`- ${timeLabel(it.starts_at)} · ${name} · ${it.reason}${tag}`);
       const intake = intakeLine(it);
       if (intake) lines.push(`  Intake: ${intake}`);
@@ -106,4 +117,34 @@ export async function policyMarkdown(q: string): Promise<string> {
   const { matches } = await searchPolicy(q);
   if (!matches.length) return `No clinic policy passages matched "${q}".`;
   return matches.map((m) => `**${m.doc_title} › ${m.section}**\n\n${m.content}`).join("\n\n---\n\n");
+}
+
+export async function blockDayMarkdown(input: { day: string; doctor?: string; reason?: string }): Promise<string> {
+  const r = await blockDay(input);
+  if (!r.ok) return r.message;
+  const lines = [
+    `**${longDay(r.day)} is blocked for ${r.doctor.name}.**`,
+    "",
+    `- ${r.slots_closed} open slot${r.slots_closed === 1 ? "" : "s"} closed. The AI receptionist will not offer this day.`,
+    `- The front desk has been alerted on the monitor.`,
+  ];
+  if (r.patients.length) {
+    lines.push(`- ${r.patients.length} booked patient${r.patients.length === 1 ? " is" : "s are"} flagged for the front desk to reschedule. Nobody has been cancelled or contacted yet:`, "");
+    for (const p of r.patients) lines.push(`  - ${p.time_label} · ${p.patient_name}${p.phone ? ` · ${p.phone}` : ""} · ${p.reason}`);
+  } else {
+    lines.push("- No patients were booked that day.");
+  }
+  lines.push("", `To undo, use reopen_day for ${longDay(r.day)}.`);
+  return lines.join("\n");
+}
+
+export async function reopenDayMarkdown(input: { day: string; doctor?: string }): Promise<string> {
+  const r = await reopenDay(input);
+  if (!r.ok) return r.message;
+  return `**${longDay(r.day)} is open again for ${r.doctor.name}.** ${r.slots_reopened} slot${r.slots_reopened === 1 ? "" : "s"} reopened for booking, the reschedule flags are cleared, and the front desk has been told.`;
+}
+
+export async function notifyFrontDeskMarkdown(input: { message: string; urgency?: "routine" | "urgent"; doctor?: string }): Promise<string> {
+  const r = await notifyFrontDesk(input);
+  return `Sent to the front desk from ${r.doctor.name}${input.urgency === "urgent" ? " (marked urgent)" : ""}. It is showing on the front-desk monitor now:\n\n> ${input.message.trim()}`;
 }

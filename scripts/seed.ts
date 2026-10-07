@@ -104,7 +104,7 @@ async function main() {
     }
     await client.query("BEGIN");
     await client.query(
-      `TRUNCATE call_events, transcript_lines, escalations, intakes, appointments, calls, slots, patients, doctors, policy_chunks RESTART IDENTITY CASCADE`,
+      `TRUNCATE desk_notes, day_blocks, call_events, transcript_lines, escalations, intakes, appointments, calls, slots, patients, doctors, policy_chunks RESTART IDENTITY CASCADE`,
     );
 
     // Doctors

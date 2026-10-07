@@ -1,7 +1,15 @@
 import { createMcpHandler } from "mcp-handler";
 import { env } from "@/lib/env";
-import { getPatientBriefInput, getScheduleInput, listRecentCallsInput, mcpSearchPolicyInput } from "@/lib/schemas";
-import { patientBriefMarkdown, policyMarkdown, recentCallsMarkdown, scheduleMarkdown } from "@/lib/format";
+import { blockDayInput, getPatientBriefInput, getScheduleInput, listRecentCallsInput, mcpSearchPolicyInput, notifyFrontDeskInput, reopenDayInput } from "@/lib/schemas";
+import {
+  blockDayMarkdown,
+  notifyFrontDeskMarkdown,
+  patientBriefMarkdown,
+  policyMarkdown,
+  recentCallsMarkdown,
+  reopenDayMarkdown,
+  scheduleMarkdown,
+} from "@/lib/format";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,6 +71,43 @@ const handler = createMcpHandler(
         annotations: { readOnlyHint: true },
       },
       async ({ query }) => safe(() => policyMarkdown(query)),
+    );
+
+    // ---- Actions (they change clinic state; the descriptions ask Claude to confirm first) ----
+
+    server.registerTool(
+      "block_day",
+      {
+        title: "Block a day",
+        description:
+          "Mark a doctor as unavailable for one whole day. This closes that day's open slots so the AI receptionist stops offering them, flags every patient already booked that day for the front desk to reschedule, and alerts the front-desk monitor. It does not cancel appointments or contact patients. Before calling, confirm the exact day with the doctor. Reversible with reopen_day.",
+        inputSchema: blockDayInput,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+      },
+      async (input) => safe(() => blockDayMarkdown(input)),
+    );
+
+    server.registerTool(
+      "reopen_day",
+      {
+        title: "Reopen a blocked day",
+        description: "Undo block_day: reopen the slots it closed, clear the reschedule flags for that day, and tell the front desk.",
+        inputSchema: reopenDayInput,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      },
+      async (input) => safe(() => reopenDayMarkdown(input)),
+    );
+
+    server.registerTool(
+      "notify_front_desk",
+      {
+        title: "Notify the front desk",
+        description:
+          "Send the clinic's front desk a short note from the doctor, e.g. which patients to prioritise when rescheduling. It appears on the front-desk monitor immediately. Show the doctor the wording before sending.",
+        inputSchema: notifyFrontDeskInput,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+      },
+      async (input) => safe(() => notifyFrontDeskMarkdown(input)),
     );
   },
   { serverInfo: { name: "fernleaf-frontdesk", version: "1.0.0" } },

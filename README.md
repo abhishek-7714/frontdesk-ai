@@ -42,7 +42,8 @@ FrontDesk AI is a voice receptionist for outpatient clinics. A patient calls the
 | `/api/eleven/session` | GET | ElevenLabs signed URL for the browser (503 until the agent is configured) |
 | `/api/admin/reset` | POST | Remove demo calls and bookings, reopen slots. Header `x-admin-token` |
 | `/api/admin/seed` | POST | Re-seed everything relative to today. Header `x-admin-token` |
-| `/api/mcp/[MCP_SECRET]` | GET/POST/DELETE | MCP server for Claude. Tools: `get_schedule`, `get_patient_brief`, `list_recent_calls`, `search_policy` |
+| `/api/mcp/[MCP_SECRET]` | GET/POST/DELETE | MCP server for Claude. Read: `get_schedule`, `get_patient_brief`, `list_recent_calls`, `search_policy`. Act: `block_day`, `reopen_day`, `notify_front_desk` |
+| `/api/desk/notes/[id]/done` | POST | Dismiss a doctor's note on the monitor. Header `x-admin-token` |
 
 ## How RAG works
 
@@ -53,12 +54,20 @@ FrontDesk AI is a voice receptionist for outpatient clinics. A patient calls the
 
 ## How MCP works
 
-`/api/mcp/<MCP_SECRET>` is a stateless Streamable HTTP MCP server built with `mcp-handler`. A wrong secret returns 404. It exposes four doctor-facing tools, each returning clean markdown:
+`/api/mcp/<MCP_SECRET>` is a stateless Streamable HTTP MCP server built with `mcp-handler`. A wrong secret returns 404. Its doctor-facing tools return clean markdown:
 
 - `get_schedule`: the doctor's appointments for a range (`today`, `tomorrow`, `this_week`, `next_7_days`). It opens with a "New from the AI receptionist" callout so fresh bookings stand out, and each is marked "Booked by AI receptionist" with its intake.
 - `get_patient_brief`: a patient's details, intake answers, and call summary.
 - `list_recent_calls`: recent calls with outcome and summary.
 - `search_policy`: the same policy search the voice agent uses.
+
+The doctor can also act from Claude. Each of these tools asks Claude to confirm with the doctor before running:
+
+- `block_day`: marks the doctor unavailable for one day ("Saturday", "the 10th"). It closes that day's open slots so Asha can't offer them, flags the patients already booked for the front desk to reschedule, and alerts the monitor. It never cancels appointments or contacts patients.
+- `reopen_day`: undoes a block.
+- `notify_front_desk`: sends a note that appears on the monitor's top bar.
+
+**Reset demo** clears all of these. `npx tsx scripts/desk-check.ts` exercises them over MCP and then undoes them.
 
 **Connect it to Claude:** in claude.ai, open Settings → Connectors → Add custom connector and paste `https://<your-domain>/api/mcp/<MCP_SECRET>`. Then ask "What appointments do I have this week?"
 
