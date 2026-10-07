@@ -2,7 +2,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import type { FeedItem } from "./state";
 import { Chip } from "../ui/Chip";
-import { AlertIcon, CalendarIcon, CheckIcon, ClockIcon, DocIcon } from "../ui/icons";
+import { AlertIcon, CalendarIcon, CheckIcon, ChevronDownIcon, ClockIcon, DocIcon } from "../ui/icons";
+import { useStickyScroll } from "./useStickyScroll";
 
 const spring = { type: "spring" as const, stiffness: 140, damping: 20 };
 
@@ -42,10 +43,10 @@ function PolicyCard({ item }: { item: Extract<FeedItem, { kind: "policy" }> }) {
         </div>
         {item.top ? (
           <>
-            <div className="mt-1 truncate text-[20px] font-medium leading-7 tracking-[-0.01em]">
+            <div className="mt-1 text-[20px] font-medium leading-7 tracking-[-0.01em]">
               {item.top.doc_title} <span className="text-ink-muted">· {item.top.section}</span>
             </div>
-            <p className="mt-1 line-clamp-2 text-[15px] leading-[22px] text-ink-muted">{item.top.snippet}</p>
+            <p className="mt-1 text-[15px] leading-[22px] text-ink-muted">{item.top.snippet}</p>
           </>
         ) : (
           <div className="mt-1 text-[18px] text-ink-muted">No matching policy for “{item.query}”</div>
@@ -135,7 +136,7 @@ function BookedCard({ item }: { item: Extract<FeedItem, { kind: "booked" }> }) {
       <div className="flex items-center justify-between gap-3 px-3 pb-1.5 pt-3.5">
         <div className="min-w-0">
           <div className="truncate text-[18px] font-medium">{item.patient_name}</div>
-          <div className="truncate text-[15px] text-ink-muted">{item.reason}</div>
+          <div className="text-[15px] text-ink-muted">{item.reason}</div>
         </div>
         <Chip tone="tint">₹{item.fee_inr.toLocaleString("en-IN")}</Chip>
       </div>
@@ -176,7 +177,7 @@ function IntakeCard({ item }: { item: Extract<FeedItem, { kind: "intake" }> }) {
                 <img src={r.tile} alt="" className="squircle h-11 w-11 shrink-0 rounded-[13px] object-cover" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium uppercase tracking-[0.08em] text-[#9AA0AE]">{r.label}</div>
-                  <div className="truncate text-[17px] leading-6">{item.fields[r.key]}</div>
+                  <div className="text-[17px] leading-6">{item.fields[r.key]}</div>
                 </div>
                 <motion.span
                   initial={{ backgroundColor: "#E7EAF1" }}
@@ -214,7 +215,7 @@ function EscalationCard({ item }: { item: Extract<FeedItem, { kind: "escalation"
           {item.urgency}
         </Chip>
       </div>
-      <p className="mt-2 line-clamp-2 text-[17px] text-ink-muted">{item.reason}</p>
+      <p className="mt-2 text-[17px] text-ink-muted">{item.reason}</p>
     </div>
   );
 }
@@ -245,24 +246,49 @@ export function initialsOf(name: string) {
 }
 
 export function EventFeed({ feed, booked }: { feed: FeedItem[]; booked: { day_label: string; time_label: string } | null }) {
-  const visible = feed.slice(0, 5);
+  // Newest first. Every card stays reachable by scrolling; the panel follows new cards unless the viewer scrolled down to read.
+  const { ref, onScroll, unseen, jump, atStart, atEnd } = useStickyScroll<HTMLDivElement>("top", feed[0]?.key);
+  // Fade whichever edge has more content beyond it.
+  const mask = atStart && atEnd ? undefined : `linear-gradient(to bottom, ${atStart ? "black" : "transparent"} 0, black 56px, black calc(100% - 96px), ${atEnd ? "black" : "transparent"} 100%)`;
   return (
-    <div className="relative flex h-full flex-col gap-5 overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, black 82%, transparent)" }}>
-      <AnimatePresence initial={false} mode="popLayout">
-        {visible.map((item) => (
-          <motion.div
-            key={item.key}
-            layout
-            initial={{ opacity: 0, y: 40, scale: 0.92, rotate: -4 }}
-            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.3 } }}
-            transition={spring}
-            style={{ transformOrigin: "30% 0%" }}
-            className="shrink-0"
+    <div className="relative h-full">
+      <div
+        ref={ref}
+        onScroll={onScroll}
+        tabIndex={0}
+        aria-label="Call events"
+        className="soft-scroll -mx-6 -mt-4 flex h-[calc(100%+16px)] flex-col gap-5 overflow-y-auto overscroll-contain px-6 pb-10 pt-4 outline-none"
+        style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          {feed.map((item) => (
+            <motion.div
+              key={item.key}
+              layout
+              initial={{ opacity: 0, y: 40, scale: 0.92, rotate: -4 }}
+              animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.3 } }}
+              transition={spring}
+              style={{ transformOrigin: "30% 0%" }}
+              className="shrink-0"
+            >
+              <FeedCard item={item} booked={booked} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+      <AnimatePresence>
+        {unseen && (
+          <motion.button
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            onClick={() => jump()}
+            className="absolute left-1/2 top-3 inline-flex h-10 -translate-x-1/2 items-center gap-1.5 rounded-full bg-periwinkle px-4 text-[15px] font-medium text-white shadow-[var(--shadow-float)]"
           >
-            <FeedCard item={item} booked={booked} />
-          </motion.div>
-        ))}
+            <ChevronDownIcon size={16} className="rotate-180" /> New update
+          </motion.button>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -84,7 +84,12 @@ function apply(state: MonitorState, e: MonitorEvent): MonitorState {
     s.seen.add(e.id);
     return s;
   }
-  if (e.call_id !== state.callId) state = freshCall(e.call_id, at);
+  if (e.call_id !== state.callId) {
+    // Overlapping calls: stay on the live one instead of flipping back and forth.
+    // Only a call.started (handled above) takes over a live call.
+    if (state.phase === "live") return state;
+    state = freshCall(e.call_id, at);
+  }
 
   const seen = new Set(state.seen);
   seen.add(e.id);
