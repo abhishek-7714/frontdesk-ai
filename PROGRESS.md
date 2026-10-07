@@ -38,3 +38,8 @@
   - R2: recomposed idle around a clear headline zone (112 px), vertically centred live column, dev indicator off, timer uses server duration, template summary fixed.
   - R3: balanced bottom row, slightly stronger agent-bubble contrast. Final set in `screenshots/monitor-*.png`.
 - Decision: the monitor renders a fixed 1920×1080 design canvas scaled to the viewport (canvas extends on the long axis), so it can never overflow or scroll on any projector resolution.
+
+### Phase 4 — MCP ✅
+- `/api/mcp/<MCP_SECRET>` (mcp-handler 2.x, stateless Streamable HTTP; wrong secret → 404). Tools: `get_schedule`, `get_patient_brief`, `list_recent_calls`, `search_policy`, descriptions verbatim from SPEC §8, clean markdown output.
+- Checkpoint: after a simulated call, `npx tsx scripts/mcp-check.ts` lists all 4 tools and runs each; `get_schedule` shows the new booking under "New from the AI receptionist" with intake, and the patient brief includes intake + call summary.
+- Decision: MCP Inspector v2 requires Node ≥ 22 (this Mac has Node 20) and Inspector v1's CLI rewrote the URL path to `/mcp`, so verification uses `scripts/mcp-check.ts`, which speaks the same JSON-RPC over Streamable HTTP. With Node 22 you can still use the Inspector UI: `npx @modelcontextprotocol/inspector`, transport Streamable HTTP, URL `https://<domain>/api/mcp/<MCP_SECRET>`.

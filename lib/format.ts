@@ -95,7 +95,7 @@ export async function recentCallsMarkdown(limit = 5): Promise<string> {
     const outcome = c.escalated ? `Escalated (${c.escalated})` : c.booked ? "Booked" : c.status === "live" ? "In progress" : "Information only";
     const dur = c.ended_at ? `${Math.max(1, Math.round((c.ended_at.getTime() - c.started_at.getTime()) / 1000))} s` : "live";
     const who = c.patient_name ?? "Unknown caller";
-    const booking = c.booked && c.doctor_name && c.starts_at ? ` → ${c.doctor_name}, ${longDay(c.starts_at)} ${timeLabel(c.starts_at)}` : "";
+    const booking = c.booked && c.doctor_name && c.starts_at ? ` → ${c.doctor_name}, ${longDay(c.starts_at)} at ${timeLabel(c.starts_at)}` : "";
     lines.push(`- **${outcome}** · ${who} · ${relativeAgo(c.started_at, now)} · ${dur}${booking}`);
     if (c.summary) lines.push(`  ${c.summary}`);
   }
