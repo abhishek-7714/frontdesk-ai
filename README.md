@@ -114,6 +114,8 @@ npx tsx scripts/create-eleven-agent.ts             # creates 5 client tools + ag
 
 To check the setup, `GET /api/eleven/session` should return `{ "signedUrl": ... }`.
 
+After editing `agent/prompt.txt`, push it to the live agent with `npx tsx scripts/update-eleven-prompt.ts`. It keeps the agent's tools and model.
+
 ## Deploying (Railway)
 
 1. Create a Postgres service from Railway's **pgvector** template.
