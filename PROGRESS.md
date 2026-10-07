@@ -70,7 +70,7 @@
 - Checked at 1440 and 390 wide with no horizontal overflow (`scripts/shoot-landing.ts`).
 
 ### Still needs keys / you
-- `ELEVENLABS_API_KEY` → `npx tsx scripts/create-eleven-agent.ts` → a real voice call (the Phase 5 checkpoint).
+- ✅ ElevenLabs agent created 2026-10-08 (Asha, claude-haiku-4-5, voice "Maya", 5 client tools, auth on, 300 s); `/api/eleven/session` returns a signed URL. Remaining: a real voice call (the Phase 5 checkpoint).
 - Railway deploy (Phase 6), then connect the MCP URL in claude.ai.
 - Cost per call in the README after the first real call.
 - Optional: `OPENAI_API_KEY` (embeddings) and `ANTHROPIC_API_KEY` (LLM summaries). Re-run `npm run seed` after adding the OpenAI key so chunks get embedded.
